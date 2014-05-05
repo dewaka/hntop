@@ -1,5 +1,7 @@
 -- HackerNews command line client
 
+import System.Info
+import System.Process
 import Network.Curl
 import Text.HTML.TagSoup
 
@@ -49,6 +51,12 @@ prettyPrintHNItem hnItem num = do
 
 printHNLinks items = mapM_ (uncurry prettyPrintHNItem) $ zip items [1..]
 
+openUrlInBrowser cmd = system openCmd
+ where openCmd = case System.Info.os of
+         "linux" -> "xdg-open " ++ cmd ++ "&"
+         "darwin" -> "open " ++ cmd ++ "&"
+         _ -> error $ "Unsupported OS: " ++ System.Info.os
+
 processCommands news = do
   putStr "> "
   cmd <- getLine
@@ -60,8 +68,11 @@ processCommands news = do
     "r" -> refresh
     "refresh" -> refresh
 
-    ('s':' ':num) -> showInBrowser news num
-    ('s':'h':'o':'w':' ':num) -> showInBrowser news num
+    ('s':' ':num) -> showInBrowser news num link
+    ('s':'h':'o':'w':' ':num) -> showInBrowser news num link
+
+    ('c':' ':num) -> showInBrowser news num comments
+    ('c':'o':'m':'m':'e':'n':'t':'s':num) -> showInBrowser news num comments
 
     "e" -> exit
     "exit" -> exit
@@ -90,18 +101,21 @@ processCommands news = do
       putStrLn $ "Unknown command: " ++ cmd
       processCommands news
 
-    showInBrowser news num = do
+    showInBrowser news num what = do
       case news of
         Nothing -> putStrLn $ "Please refresh news by pressing 'display' or 'refresh' first"
         Just items -> do
           let itemNum = read num :: Int
           if itemNum <= 0 || itemNum > (length items)
             then do
-              putStrLn $ "Please enter a positive number less than or equal to " ++ num
-              undefined
+              putStrLn $ "Erorr: Please enter a positive number less than or equal to " ++ num
             else do
               putStrLn $ "Opening item number " ++ num ++ " in system browser"
-              undefined
+              let newsItem = items !! (itemNum - 1)
+                  url = what newsItem
+              putStrLn $ "Opening url: " ++ url
+              status <- openUrlInBrowser url
+              putStrLn $ "Status: " ++ show status
       processCommands news
 
     exit = putStrLn "Bye..."
