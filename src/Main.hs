@@ -47,15 +47,48 @@ exampleRss = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\
 getNewsItems page = map getItem $ sections (~== "<item>") $ parseWebPage page
   where
     getItem tags = HackerNewsItem { title = tagText $ tags !! 2
-                                  , link = tagText $ tags !! 2
-                                  , comments = tagText $ tags !! 2
-                                  , description = tagText $ tags !! 2 }
+                                  , link = tagText $ tags !! 5
+                                  , comments = tagText $ tags !! 8
+                                  , description = tagText $ tags !! 11 }
     tagText (TagText s) = s
 
 printHNLinks = do
   Right (page, _) <- processWebRequest hnRss
   let items = getNewsItems page
-  print items
+  mapM_ (uncurry prettyPrintHNItem) $ zip items [1..]
+
+prettyPrintHNItem hnItem num = do
+  putStrLn $ "[" ++ show num ++ "] " ++ title hnItem
+  putStrLn $ "Link: " ++ link hnItem
+  putStrLn $ "Comments: " ++ comments hnItem
+  putStrLn ""
+
+processCommands = do
+  putStr "> "
+  cmd <- getLine
+  putStrLn ""
+  case cmd of
+    "d" -> display
+    "display" -> display
+    ('s':' ':num) -> showInBrowser num
+    ('s':'h':'o':'w':' ':num) -> showInBrowser num
+    "e" -> exit
+    "exit" -> exit
+    _ -> uknown cmd
+  where
+    display = do
+      printHNLinks
+      processCommands
+
+    uknown cmd = do
+      putStrLn $ "Unknown command: " ++ cmd
+      processCommands
+
+    showInBrowser num = do
+      putStrLn $ "Opening item: " ++ num ++ " in the system browser"
+      processCommands
+
+    exit = putStrLn "Bye..."
 
 main = do
   putStrLn "Welcome to HN Top"
