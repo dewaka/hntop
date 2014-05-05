@@ -29,21 +29,6 @@ printHnTags = do
       let tags = parseWebPage page
       print tags
 
-exampleRss = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\
-             \<rss version=\"2.0\">\
-             \<channel>\
-             \<title>Hacker News</title>\
-             \<link>https://news.ycombinator.com/</link>\
-             \<description>Links for the intellectually curious, ranked by readers.</description>\
-             \<item>\
-             \<title>How Steve Wozniak Wrote BASIC for the Original Apple From Scratch</title>\
-             \<link>http://gizmodo.com/how-steve-wozniak-wrote-basic-for-the-original-apple-fr-1570573636/all</link>\
-             \<comments>https://news.ycombinator.com/item?id=7687174</comments>\
-             \<description><![CDATA[<a href=\"https://news.ycombinator.com/item?id=7687174\">Comments</a>]]></description>\
-             \</item>\
-             \</channel>\
-             \</rss>"
-
 getNewsItems page = map getItem $ sections (~== "<item>") $ parseWebPage page
   where
     getItem tags = HackerNewsItem { title = tagText $ tags !! 2
@@ -52,10 +37,9 @@ getNewsItems page = map getItem $ sections (~== "<item>") $ parseWebPage page
                                   , description = tagText $ tags !! 11 }
     tagText (TagText s) = s
 
-printHNLinks = do
+getLatestNewsItems = do
   Right (page, _) <- processWebRequest hnRss
-  let items = getNewsItems page
-  mapM_ (uncurry prettyPrintHNItem) $ zip items [1..]
+  return $ getNewsItems page
 
 prettyPrintHNItem hnItem num = do
   putStrLn $ "[" ++ show num ++ "] " ++ title hnItem
@@ -63,33 +47,65 @@ prettyPrintHNItem hnItem num = do
   putStrLn $ "Comments: " ++ comments hnItem
   putStrLn ""
 
-processCommands = do
+printHNLinks items = mapM_ (uncurry prettyPrintHNItem) $ zip items [1..]
+
+processCommands news = do
   putStr "> "
   cmd <- getLine
   putStrLn ""
   case cmd of
-    "d" -> display
-    "display" -> display
-    ('s':' ':num) -> showInBrowser num
-    ('s':'h':'o':'w':' ':num) -> showInBrowser num
+    "d" -> display news
+    "display" -> display news
+
+    "r" -> refresh
+    "refresh" -> refresh
+
+    ('s':' ':num) -> showInBrowser news num
+    ('s':'h':'o':'w':' ':num) -> showInBrowser news num
+
     "e" -> exit
     "exit" -> exit
-    _ -> uknown cmd
+
+    _ -> uknown news cmd
+
   where
-    display = do
-      printHNLinks
-      processCommands
+    display news = 
+      case news of
+        Nothing -> do
+          putStrLn "Loading Hacker News..."
+          items <- getLatestNewsItems
+          printHNLinks items
+          processCommands (Just items)
+        Just items -> do 
+          putStrLn "Displaying Hacker News..."
+          printHNLinks items
+          processCommands news
 
-    uknown cmd = do
+    refresh = do
+      putStrLn "Refreshing Hacker News..."
+      items <- getLatestNewsItems
+      processCommands (Just items) 
+
+    uknown news cmd = do
       putStrLn $ "Unknown command: " ++ cmd
-      processCommands
+      processCommands news
 
-    showInBrowser num = do
-      putStrLn $ "Opening item: " ++ num ++ " in the system browser"
-      processCommands
+    showInBrowser news num = do
+      case news of
+        Nothing -> putStrLn $ "Please refresh news by pressing 'display' or 'refresh' first"
+        Just items -> do
+          let itemNum = read num :: Int
+          if itemNum <= 0 || itemNum > (length items)
+            then do
+              putStrLn $ "Please enter a positive number less than or equal to " ++ num
+              undefined
+            else do
+              putStrLn $ "Opening item number " ++ num ++ " in system browser"
+              undefined
+      processCommands news
 
     exit = putStrLn "Bye..."
 
 main = do
   putStrLn "Welcome to HN Top"
-  printHNLinks
+  processCommands Nothing
