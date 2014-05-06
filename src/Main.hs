@@ -72,7 +72,7 @@ processCommands news = do
     ('s':'h':'o':'w':' ':num) -> showInBrowser news num link
 
     ('c':' ':num) -> showInBrowser news num comments
-    ('c':'o':'m':'m':'e':'n':'t':'s':num) -> showInBrowser news num comments
+    ('c':'o':'m':'m':'e':'n':'t':'s':' ':num) -> showInBrowser news num comments
 
     "e" -> exit
     "exit" -> exit
