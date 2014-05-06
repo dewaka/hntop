@@ -23,6 +23,7 @@ executable hntop
                      , tagsoup
                      , curl
                      , process
+                     , time
                    --  , http-client
                    --  , http-conduit
                    --  , conduit

@@ -1,5 +1,6 @@
 -- HackerNews command line client
 
+import Data.Time
 import System.Info
 import System.Process
 import Network.Curl
@@ -19,6 +20,7 @@ processWebRequest  url = do
     _ -> return $ Left status
 
 hnRss = "https://news.ycombinator.com/rss"
+hnViewedFile = "viewed.csv"
 
 parseWebPage :: String -> [Tag String]
 parseWebPage = parseTags
@@ -56,6 +58,22 @@ openUrlInBrowser cmd = system openCmd
          "linux" -> "xdg-open " ++ cmd ++ "&"
          "darwin" -> "open " ++ cmd ++ "&"
          _ -> error $ "Unsupported OS: " ++ System.Info.os
+
+
+
+-- Save viewed HN items to a file in a simple CSV format
+-- Timestamp, Link, HN Comments link
+saveViewedItemToFile timestamp item file = writeFile file itemLine
+  where
+    itemLine = show timestamp ++ ", " ++ itemLink ++ ", " ++ hnLink
+    itemLink = link item
+    hnLink = comments item
+
+saveViewedItem item = do
+  now <- getCurrentTime
+  saveViewedItemToFile now item hnViewedFile 
+
+readViewedItems = undefined
 
 processCommands news = do
   putStr "> "
@@ -119,6 +137,12 @@ processCommands news = do
       processCommands news
 
     exit = putStrLn "Bye..."
+
+testSaveViewedItems = do
+  let item = HackerNewsItem { link = "http://bing.com", comments = "http://bing.com/images" }
+  saveViewedItem item
+
+
 
 main = do
   putStrLn "Welcome to HN Top"
