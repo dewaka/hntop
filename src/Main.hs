@@ -73,7 +73,19 @@ saveViewedItem item = do
   now <- getCurrentTime
   saveViewedItemToFile now item hnViewedFile 
 
-readViewedItems = undefined
+split p ls = go p ls []
+  where
+    go _ [] acc = [acc]
+    go p (x:xs) acc = if p x
+                      then acc : go p xs []
+                      else go p xs (acc++[x])
+
+splitByComma = split (==',')
+
+readViewedItems = do
+  content <- readFile hnViewedFile
+  return $ map splitByComma $ split (=='\n') content
+  
 
 processCommands news = do
   putStr "> "
