@@ -12,6 +12,10 @@ data HackerNewsItem = HackerNewsItem { title :: String
                                      , description :: String
                                      } deriving (Show, Eq)
 
+data ViewedItem = ViewedItem { itemLink :: String
+                             , itemHNLink :: String
+                             , timestamp :: String } deriving (Show, Eq)
+
 processWebRequest :: String -> IO (Either CurlCode (String, CurlCode))
 processWebRequest  url = do
   (status, page) <- curlGetString url []
@@ -71,7 +75,7 @@ saveViewedItemToFile timestamp item file = writeFile file itemLine
 
 saveViewedItem item = do
   now <- getCurrentTime
-  saveViewedItemToFile now item hnViewedFile 
+  saveViewedItemToFile now item hnViewedFile
 
 split p ls = go p ls []
   where
@@ -84,8 +88,11 @@ splitByComma = split (==',')
 
 readViewedItems = do
   content <- readFile hnViewedFile
-  return $ map splitByComma $ split (=='\n') content
-  
+  return $ map (toViewedItem . splitByComma) $ split (=='\n') content
+  where
+    toViewedItem [ts, ln, hp] = ViewedItem { itemLink = ln
+                                           , itemHNLink = hp
+                                           , timestamp = ts }
 
 processCommands news = do
   putStr "> "
@@ -110,14 +117,14 @@ processCommands news = do
     _ -> uknown news cmd
 
   where
-    display news = 
+    display news =
       case news of
         Nothing -> do
           putStrLn "Loading Hacker News..."
           items <- getLatestNewsItems
           printHNLinks items
           processCommands (Just items)
-        Just items -> do 
+        Just items -> do
           putStrLn "Displaying Hacker News..."
           printHNLinks items
           processCommands news
@@ -125,7 +132,7 @@ processCommands news = do
     refresh = do
       putStrLn "Refreshing Hacker News..."
       items <- getLatestNewsItems
-      processCommands (Just items) 
+      processCommands (Just items)
 
     uknown news cmd = do
       putStrLn $ "Unknown command: " ++ cmd
@@ -153,7 +160,6 @@ processCommands news = do
 testSaveViewedItems = do
   let item = HackerNewsItem { link = "http://bing.com", comments = "http://bing.com/images" }
   saveViewedItem item
-
 
 
 main = do
