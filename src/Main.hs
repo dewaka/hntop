@@ -158,7 +158,10 @@ processCommands news = do
     exit = putStrLn "Bye..."
 
 testSaveViewedItems = do
-  let item = HackerNewsItem { link = "http://bing.com", comments = "http://bing.com/images" }
+  let item = HackerNewsItem { link = "http://bing.com"
+                            , comments = "http://bing.com/images"
+                            , description = "Something"
+                            , title = "Google to Bing" }
   saveViewedItem item
 
 
